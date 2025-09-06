@@ -43,7 +43,8 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-.angular
+# Next.js
+.next
+out
 
-vite.config.*.timestamp*
-vitest.config.*.timestamp*
+test-output

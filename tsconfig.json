@@ -4,16 +4,10 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/Express-be-e2e"
+      "path": "./apps/E-Commerce-e2e"
     },
     {
-      "path": "./apps/Express-be"
-    },
-    {
-      "path": "./apps/Webapp-e2e"
-    },
-    {
-      "path": "./apps/Webapp"
+      "path": "./apps/E-Commerce"
     }
   ]
 }
