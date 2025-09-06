@@ -2,5 +2,18 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./apps/Express-be-e2e"
+    },
+    {
+      "path": "./apps/Express-be"
+    },
+    {
+      "path": "./apps/Webapp-e2e"
+    },
+    {
+      "path": "./apps/Webapp"
+    }
+  ]
 }
