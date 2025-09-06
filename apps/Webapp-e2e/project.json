@@ -1,0 +1,10 @@
+{
+  "name": "Webapp-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/Webapp-e2e/src",
+  "tags": [],
+  "implicitDependencies": ["Webapp"],
+  "// targets": "to see all targets run: nx show project Webapp-e2e --web",
+  "targets": {}
+}
