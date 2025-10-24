@@ -8,6 +8,12 @@
     },
     {
       "path": "./apps/Frontend"
+    },
+    {
+      "path": "./api-e2e"
+    },
+    {
+      "path": "./api"
     }
   ]
 }
