@@ -1,12 +1,15 @@
 import {
-  Links,
-  Meta,
-  Outlet,
   Scripts,
   ScrollRestoration,
   type MetaFunction,
   type LinksFunction,
 } from 'react-router';
+import React from 'react';
+import { ThemeProvider } from '@mui/material/styles';
+import theme from './lib/theme';
+import { authClient } from './lib/client';
+import router from './routes';
+import { RouterProvider } from 'react-router';
 
 
 export const meta: MetaFunction = () => [
@@ -28,25 +31,28 @@ export const links: LinksFunction = () => [
   },
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export async function Layout({ children }: { children: React.ReactNode }) {
+  // Protect the dev server from crashing when the auth backend is down.
+  // If fetching the session fails (ECONNREFUSED during local dev), continue without a session.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let session: any = null;
+  try {
+    const res = await authClient.getSession();
+    session = res?.data ?? null;
+  } catch (err) {
+    // Avoid using `any` in this dev-only log; coerce to string instead.
+    console.warn('[dev] authClient.getSession failed, continuing without session:', String(err));
+    session = null;
+  }
+
   return (
-    <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <Meta />
-        <Links />
-      </head>
-      <body>
+    <React.StrictMode>
+      <ThemeProvider theme={theme}>
+        <RouterProvider router={router as any} />
+      </ThemeProvider>
+      <ScrollRestoration />
+      <Scripts />
+    </React.StrictMode>
 
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
   );
-}
-
-export default function App() {
-  return <Outlet />;
 }
