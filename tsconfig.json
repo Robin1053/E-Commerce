@@ -4,9 +4,6 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/Frontend-e2e"
-    },
-    {
       "path": "./apps/Frontend"
     },
     {
