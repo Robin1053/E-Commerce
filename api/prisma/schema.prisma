@@ -1,7 +1,7 @@
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
+  // default output (node_modules/@prisma/client) is used so imports like
+  // `import { PrismaClient } from '@prisma/client'` work without custom paths.
 }
 
 datasource db {
@@ -22,6 +22,7 @@ model User {
 
   stripeCustomerId String?
   passkeys         Passkey[]
+  carts            Cart[]
 
   @@unique([email])
   @@map("user")
@@ -87,4 +88,47 @@ model Passkey {
   aaguid       String?
 
   @@map("passkey")
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+  products Product[]
+}
+
+model Product {
+  id          String     @id @default(cuid())
+  name        String
+  description String
+  price       Int // in cent für Stripe-Kompatibilität
+  categoryId  String
+  category    Category   @relation(fields: [categoryId], references: [id])
+  stripeId    String? // product id
+  stripePrice String? // price id
+  cartItems   CartItem[]
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("cart")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId]) // verhindert doppelte gleiche Produkte
+  @@map("cart_item")
 }

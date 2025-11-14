@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { stripe } from '@better-auth/stripe';
 import Stripe from 'stripe';
 import { passkey } from 'better-auth/plugins/passkey';
@@ -11,7 +11,9 @@ const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 const prisma = new PrismaClient();
-export const auth = betterAuth({
+
+
+const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'sqlite',
   }),
@@ -38,3 +40,4 @@ export const auth = betterAuth({
 });
 
 export type Auth = typeof auth;
+export { auth as AuthClient};
