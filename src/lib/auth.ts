@@ -7,7 +7,7 @@ import Stripe from 'stripe';
 import { passkey } from 'better-auth/plugins/passkey';
 
 const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
+  apiVersion: '2025-10-29.clover',
 });
 
 const prisma = new PrismaClient();
