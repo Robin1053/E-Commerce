@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../generated/prisma/client';
 import { stripe } from '@better-auth/stripe';
 import Stripe from 'stripe';
 import { passkey } from 'better-auth/plugins/passkey';
@@ -40,4 +40,4 @@ const auth = betterAuth({
 });
 
 export type Auth = typeof auth;
-export { auth as AuthClient};
+export { auth as Auth};
