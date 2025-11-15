@@ -1,5 +1,4 @@
 "use client";
-import type { Metadata } from "next";
 import { Roboto, Sour_Gummy } from "next/font/google";
 import "./globals.css";
 import { NextAppProvider } from "@toolpad/core/nextjs";
@@ -9,8 +8,11 @@ import * as React from "react";
 import { NAVIGATION, BRANDING } from "@/lib/AppProvidor";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { PageContainer } from "@toolpad/core/PageContainer";
-import * as client from "@/lib/auth-client";
+import { AuthClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import theme from "@/theme/theme";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -22,8 +24,7 @@ const sourGummy = Sour_Gummy({
   subsets: ["latin"],
 });
 
-const { data: session } = await client.getSession();
-
+const { data: session } = await AuthClient.getSession();
 
 export default function DashboardPagesLayout(props: {
   children: React.ReactNode;
@@ -36,10 +37,10 @@ export default function DashboardPagesLayout(props: {
         router.push("auth/signin");
       },
       signOut: async () => {
-        await client.signOut();
+        await AuthClient.signOut();
       },
     };
-  }, []);
+  }, [router]);
 
   return (
     <html lang="de">
@@ -51,9 +52,14 @@ export default function DashboardPagesLayout(props: {
               branding={BRANDING}
               authentication={authentication}
               session={session}
+              theme={theme}
             >
               <DashboardLayout branding={BRANDING}>
-                <PageContainer>{props.children}</PageContainer>
+                <PageContainer>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    {props.children}
+                  </LocalizationProvider>
+                </PageContainer>
               </DashboardLayout>{" "}
             </NextAppProvider>
           </React.Suspense>

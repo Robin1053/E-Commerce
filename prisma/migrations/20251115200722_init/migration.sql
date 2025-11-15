@@ -7,7 +7,8 @@ CREATE TABLE "user" (
     "image" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "stripeCustomerId" TEXT
+    "stripeCustomerId" TEXT,
+    "Birthday" DATETIME
 );
 
 -- CreateTable
