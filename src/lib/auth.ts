@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "../../generated/prisma/client";
 import { stripe } from "@better-auth/stripe";
 import Stripe from "stripe";
 import { passkey } from "better-auth/plugins/passkey";
@@ -15,7 +15,7 @@ const prisma = new PrismaClient();
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "sqlite",
+    provider: "postgresql",
   }),
   secret: process.env.BETTER_AUTH_SECRET,
 
@@ -30,13 +30,13 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    nextCookies(),
     passkey(),
     stripe({
       stripeClient,
       stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
       createCustomerOnSignUp: true,
     }),
+    nextCookies(),
   ],
   user: {
     additionalFields: {

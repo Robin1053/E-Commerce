@@ -38,6 +38,8 @@ export default function DashboardPagesLayout(props: {
       },
       signOut: async () => {
         await AuthClient.signOut();
+        router.push("auth/signin");
+        window.location.reload();
       },
     };
   }, [router]);
