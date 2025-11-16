@@ -1,7 +1,7 @@
 import type { Product } from "../../generated/prisma/client";
 import { CardActionArea, CardContent, CardHeader, Card, CardMedia } from "@mui/material";
 
-export default function Product(product: Product) {
+export default function ProductCard(product: Product) {
   return (
     <>
       <Card>

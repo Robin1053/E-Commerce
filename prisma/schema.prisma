@@ -101,9 +101,9 @@ model Product {
   description String
   price       Int // in cent für Stripe-Kompatibilität
   image       String
-  categoryId  String?
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  stripeId    String?    @unique// product id
+  categoryId  String
+  category    Category   @relation(fields: [categoryId], references: [id])
+  stripeId    String?    @unique // product id
   stripePrice String? // price id
   cartItems   CartItem[]
 }

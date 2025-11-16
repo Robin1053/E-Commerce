@@ -9,7 +9,7 @@ const NAVIGATION: Navigation = [
     title: 'Shop',
   },
   {
-    segment: 'page',
+    segment: 'Products',
     title: 'Products',
     icon: React.createElement(ShopOutlinedIcon),
   },
