@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "../../generated/prisma/client";
+import { PrismaClient } from "../generated/prisma/client";
 import { stripe } from "@better-auth/stripe";
 import Stripe from "stripe";
 import { passkey } from "better-auth/plugins/passkey";

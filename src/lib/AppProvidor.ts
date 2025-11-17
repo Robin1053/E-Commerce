@@ -14,7 +14,7 @@ const NAVIGATION: Navigation = [
     icon: React.createElement(ShopOutlinedIcon),
   },
   {
-    segment: 'page-2',
+    segment: 'your-orders',
     title: 'Your Orders',
     icon: React.createElement(ShoppingCartOutlinedIcon),
   },

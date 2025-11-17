@@ -1,7 +1,7 @@
 import ProductCard from "@/Components/product";
 import * as React from "react";
 import { prisma } from "@/lib/DB/Prisma";
-import { Alert } from "@mui/material";
+import { Grid } from "@mui/material";
 
 export default async function ProductsPage() {
   // Server component: fetch directly from the database using Prisma.
@@ -9,11 +9,12 @@ export default async function ProductsPage() {
 
   return (
     <>
-    <Alert severity="error"></Alert>
-      {products.map((p) => (
-        // Spread product fields so ProductCard receives them as props matching the expected shape
-        <ProductCard key={p.id} {...p} />
-      ))}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        {products.map((p) => (
+
+          <ProductCard key={p.id} {...p} />
+        ))}
+      </Grid>
     </>
   );
 }

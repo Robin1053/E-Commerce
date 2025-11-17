@@ -34,11 +34,11 @@ export default function DashboardPagesLayout(props: {
   const authentication = React.useMemo(() => {
     return {
       signIn: () => {
-        router.push("auth/signin");
+        router.push("/auth/signin");
       },
       signOut: async () => {
         await AuthClient.signOut();
-        router.push("auth/signin");
+        router.push("/auth/signin");
         window.location.reload();
       },
     };
