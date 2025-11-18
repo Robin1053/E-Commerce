@@ -17,6 +17,8 @@ import {
   Divider,
   Alert,
   LinearProgress,
+  Typography,
+  Avatar,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -33,6 +35,8 @@ export default function SignUp() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [repeatPassword, setRepeatPassword] = React.useState("");
+  const [profilePic, setProfilePic] = React.useState<File | null>(null);
+  const [profilePicPreview, setProfilePicPreview] = React.useState<string>('')
 
   // ------------------------
   // UI States
@@ -60,10 +64,77 @@ export default function SignUp() {
   // ------------------------
   // Validation Helpers
   // ------------------------
-  const isValidEmail = (email: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidEmail = (email: string) => {
+    // Erweiterter Regex für bessere E-Mail-Validierung
+    // Erlaubt: Buchstaben, Zahlen, Punkte, Unterstriche, Plus, Minus im lokalen Teil
+    // Erlaubt: Subdomains und internationale Domains
+    const emailRegex = /^[a-zA-Z0-9._+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email.trim());
+  };
 
   const isValidPassword = (password: string) => password.length >= 8;
+
+  //------------------------
+  // Profile Image Upload Handler
+  //------------------------
+  const handleProfilePicChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validiere Dateityp
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setErrorMessage('Nur JPEG, PNG und WebP Dateien sind erlaubt');
+        return;
+      }
+
+      // Validiere Dateigröße (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        setErrorMessage('Datei ist zu groß (max 5MB)');
+        return;
+      }
+
+      setProfilePic(file);
+
+      // Erstelle Preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setProfilePicPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setErrorMessage(''); // Lösche vorherige Fehler
+    }
+  };
+
+  const uploadProfilePic = async (userId: string): Promise<string | null> => {
+    if (!profilePic) return null;
+
+    const formData = new FormData();
+    formData.append('profilePic', profilePic);
+    formData.append('userId', userId);
+
+    try {
+      const response = await fetch('/api/auth/profile-pics', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.imagePath;
+      } else {
+        const errorData = await response.json();
+        setErrorMessage(errorData.error || 'Fehler beim Upload des Profilbildes');
+        return null;
+      }
+    } catch (error) {
+      console.error('Fehler beim Upload:', error);
+      setErrorMessage('Fehler beim Upload des Profilbildes');
+      return null;
+    }
+  };
+
+
 
   // ------------------------
   // Email Sign-Up Handler
@@ -146,6 +217,38 @@ export default function SignUp() {
       }
 
       console.log("Registrierung erfolgreich:", data);
+
+      // Wenn ein Profilbild ausgewählt wurde, lade es hoch
+      if (profilePic && data?.user?.id) {
+        console.log("Uploading profile picture...");
+        const imagePath = await uploadProfilePic(data.user.id);
+        if (imagePath) {
+          console.log("Profile picture uploaded successfully:", imagePath);
+
+          // Aktualisiere das Profilbild in der Datenbank
+          try {
+            const updateResponse = await fetch('/api/auth/update-profile-pic', {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                userId: data.user.id,
+                imagePath: imagePath,
+              }),
+            });
+
+            if (updateResponse.ok) {
+              console.log("Profile picture updated in database successfully");
+            } else {
+              console.error("Failed to update profile picture in database");
+            }
+          } catch (updateError) {
+            console.error("Error updating profile picture in database:", updateError);
+          }
+        }
+      }
+
     } catch (err) {
       console.error("Unerwarteter Fehler:", err);
       setErrorMessage("Ein unerwarteter Fehler ist aufgetreten: " + String(err));
@@ -154,177 +257,241 @@ export default function SignUp() {
     }
   };
 
-  // ------------------------
-  // JSX Rendering
-  // ------------------------
-  return (
-    <>
-      <Card
-        sx={{
-          maxWidth: 600,
-          mx: "auto",
-          mt: 8,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <CardHeader title="Bitte registrieren Sie sich" />
-        </Box>
-
-        <CardContent
+    // ------------------------
+    // JSX Rendering
+    // ------------------------
+    return (
+      <>
+        <Card
           sx={{
-            width: "100%",
+            maxWidth: 600,
+            mx: "auto",
+            mt: 8,
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
           }}
         >
-          <Box
-            component="form"
-            onSubmit={handleEmailSignUp}
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <CardHeader title="Bitte registrieren Sie sich" />
+          </Box>
+
+          <CardContent
             sx={{
+              width: "100%",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 2,
             }}
           >
-            {errorMessage && (
-              <Alert
-                variant="outlined"
-                severity="error"
-                sx={{ width: 300, minHeight: 48 }}
-              >
-                {errorMessage}
-              </Alert>
-            )}
+            <Box
+              component="form"
+              onSubmit={handleEmailSignUp}
+              noValidate
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 2,
+              }}
+            >
+              {errorMessage && (
+                <Alert
+                  variant="outlined"
+                  severity="error"
+                  sx={{ width: 300, minHeight: 48 }}
+                >
+                  {errorMessage}
+                </Alert>
+              )}
 
-            {/* Name */}
-            <TextField
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              label="Max Mustermann"
-              variant="standard"
-              required
-              error={nameError}
-              sx={{ width: 300 }}
-            />
-
-            {/* Email */}
-            <TextField
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              label="Max@Mustermann.de"
-              variant="standard"
-              required
-              error={emailError}
-              helperText={emailError ? "Ungültige E-Mail-Adresse" : ""}
-              sx={{ width: 300 }}
-            />
-
-            {/* Passwort */}
-            <FormControl variant="standard" required sx={{ width: 300 }}>
-              <InputLabel htmlFor="password">Passwort</InputLabel>
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                error={passwordError}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label={
-                        showPassword ? "Passwort ausblenden" : "Passwort anzeigen"
-                      }
-                      onClick={toggleShowPassword}
-                      onMouseDown={preventDefault}
-                      onMouseUp={preventDefault}
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                }
+              {/* Name */}
+              <TextField
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                label="Max Mustermann"
+                variant="standard"
+                required
+                error={nameError}
+                sx={{ width: 300 }}
               />
-            </FormControl>
 
-            {/* Passwort wiederholen */}
-            <FormControl variant="standard" required sx={{ width: 300 }}>
-              <InputLabel htmlFor="repeat-password">Passwort wiederholen</InputLabel>
-              <Input
-                id="repeat-password"
-                type={showRepeatPassword ? "text" : "password"}
-                value={repeatPassword}
-                onChange={(e) => setRepeatPassword(e.target.value)}
-                error={passwordError}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label={
-                        showRepeatPassword
-                          ? "Passwort ausblenden"
-                          : "Passwort anzeigen"
-                      }
-                      onClick={toggleShowRepeatPassword}
-                      onMouseDown={preventDefault}
-                      onMouseUp={preventDefault}
-                    >
-                      {showRepeatPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                }
+              {/* Email */}
+              <TextField
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                label="Max@Mustermann.de"
+                variant="standard"
+                type="email"
+                required
+                error={emailError}
+                helperText={emailError ? "Ungültige E-Mail-Adresse" : ""}
+                sx={{ width: 300 }}
               />
-            </FormControl>
 
-            {/* Geburtstag */}
-            <DatePicker
-              disableFuture
-              value={birthday}
-              onChange={(newValue) => setBirthday(newValue || dayjs())}
-              label="Geburtsdatum"
-              sx={{ width: 300, height: 48 }}
-            />
+              {/* Passwort */}
+              <FormControl variant="standard" required sx={{ width: 300 }}>
+                <InputLabel htmlFor="password">Passwort</InputLabel>
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  error={passwordError}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={
+                          showPassword ? "Passwort ausblenden" : "Passwort anzeigen"
+                        }
+                        onClick={toggleShowPassword}
+                        onMouseDown={preventDefault}
+                        onMouseUp={preventDefault}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  }
+                />
+              </FormControl>
 
-            {/* Buttons */}
-            <Box sx={{ display: "flex", justifyContent: "center", gap: 2, width: 300 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                type="submit"
-                sx={{
-                  flexGrow: 1,
-                  minHeight: 48,
-                  "@media (max-width: 600px)": { width: "100%" },
-                }}
-                disabled={loading}
-              >
-                Registrieren
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                href="/auth/signin"
-                sx={{
-                  flexGrow: 1,
-                  minHeight: 48,
-                  "@media (max-width: 600px)": { width: "100%" },
-                }}
-                disabled={loading}
-              >
-                Anmelden
-              </Button>
+              {/* Passwort wiederholen */}
+              <FormControl variant="standard" required sx={{ width: 300 }}>
+                <InputLabel htmlFor="repeat-password">Passwort wiederholen</InputLabel>
+                <Input
+                  id="repeat-password"
+                  type={showRepeatPassword ? "text" : "password"}
+                  value={repeatPassword}
+                  onChange={(e) => setRepeatPassword(e.target.value)}
+                  error={passwordError}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={
+                          showRepeatPassword
+                            ? "Passwort ausblenden"
+                            : "Passwort anzeigen"
+                        }
+                        onClick={toggleShowRepeatPassword}
+                        onMouseDown={preventDefault}
+                        onMouseUp={preventDefault}
+                      >
+                        {showRepeatPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  }
+                />
+              </FormControl>
+
+              {/* Geburtstag */}
+              <DatePicker
+                disableFuture
+                value={birthday}
+                onChange={(newValue) => setBirthday(newValue || dayjs())}
+                label="Geburtsdatum"
+                sx={{ width: 300, height: 48 }}
+              />
+              {/* Profilbild Upload */}
+              <Box sx={
+                {
+                  width: 300,
+                  textAlign: 'center',
+                  mt: 2
+                }
+              }>
+                <Typography
+                  variant="body2"
+                  sx={
+                    {
+                      mb: 1
+                    }
+                  }>
+                  Profilbild (optional)
+                </Typography>
+
+                {profilePicPreview && (
+                  <Avatar
+                    src={profilePicPreview}
+                    sx={
+                      {
+                        width: 80,
+                        height: 80,
+                        mx: 'auto',
+                        mb: 2
+                      }
+                    }
+                  />
+                )}
+
+                <Button
+                  variant="outlined"
+                  component="label"
+                  sx={
+                    { width: '100%' }
+                  }
+                  disabled={loading}
+                  loading={loading}
+                >
+                  {profilePic ? 'Bild ändern' : 'Bild auswählen'}
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleProfilePicChange}
+                  />
+                </Button>
+
+                {profilePic && (
+                  <Typography
+                    variant="caption"
+                    sx={
+                      {
+                        display: 'block',
+                        mt: 1
+                      }
+                    }>
+                    {profilePic.name}
+                  </Typography>
+                )}
+              </Box>
+              {/* Buttons */}
+              <Box sx={{ display: "flex", justifyContent: "center", gap: 2, width: 300 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  type="submit"
+                  sx={{
+                    flexGrow: 1,
+                    minHeight: 48,
+                    "@media (max-width: 600px)": { width: "100%" },
+                  }}
+                  disabled={loading}
+                >
+                  Registrieren
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  href="/auth/signin"
+                  sx={{
+                    flexGrow: 1,
+                    minHeight: 48,
+                    "@media (max-width: 600px)": { width: "100%" },
+                  }}
+                  disabled={loading}
+                >
+                  Anmelden
+                </Button>
+              </Box>
             </Box>
-          </Box>
 
-          {/* Ladebalken & Divider */}
-          {loading && <LinearProgress sx={{ width: 300, my: 3 }} />}
-          {!loading && <Divider sx={{ my: 3, width: 300 }}>Oder registrieren mit</Divider>}
+            {/* Ladebalken & Divider */}
+            {loading && <LinearProgress sx={{ width: 300, my: 3 }} />}
+            {!loading && <Divider sx={{ my: 3, width: 300 }}>Oder registrieren mit</Divider>}
 
-          {/* Google Button */}
-          <GoogleButton width={300} />
-        </CardContent>
-      </Card>
-    </>
-  );
-}
+            {/* Google Button */}
+            <GoogleButton width={300} />
+          </CardContent>
+        </Card>
+      </>
+    );
+  }

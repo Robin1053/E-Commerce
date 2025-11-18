@@ -203,6 +203,7 @@ export default function SignIn() {
           <Box
             component="form"
             onSubmit={handleEmailSignIn}
+            noValidate
             sx={{
               display: "flex",
               flexDirection: "column",
@@ -221,7 +222,6 @@ export default function SignIn() {
               onChange={(e) => setEmail(e.target.value)}
               required
               error={EmailError}
-              autoComplete="on"
             />
             <FormControl fullWidth variant="standard">
               <InputLabel htmlFor="password">Passwort</InputLabel>
@@ -230,7 +230,6 @@ export default function SignIn() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="on"
                 error={PasswordError}
                 endAdornment={
                   <InputAdornment position="end">

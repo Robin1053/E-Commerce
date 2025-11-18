@@ -9,9 +9,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   engine: "classic",
-  // Use the `env()` helper so Prisma will load environment variables (from `.env`)
-  // when a Prisma config is present. This prevents the CLI from skipping env loading
-  // and resolves the `Environment variable not found: DATABASE_URL` error.
   datasource: {
     url: env("DATABASE_URL"),
   },
