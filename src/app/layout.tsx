@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import theme from "@/theme/theme";
+import { ThemeProvider } from "@mui/material";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -54,14 +55,15 @@ export default function DashboardPagesLayout(props: {
               branding={BRANDING}
               authentication={authentication}
               session={session}
-              theme={theme}
             >
               <DashboardLayout branding={BRANDING}>
-                <PageContainer>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    {props.children}
-                  </LocalizationProvider>
-                </PageContainer>
+                <ThemeProvider theme={theme}>
+                  <PageContainer>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      {props.children}
+                    </LocalizationProvider>
+                  </PageContainer>
+                </ThemeProvider>
               </DashboardLayout>{" "}
             </NextAppProvider>
           </React.Suspense>

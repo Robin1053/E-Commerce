@@ -20,20 +20,35 @@ import {
   Box,
   Alert,
   LinearProgress,
+  Badge,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import KeyIcon from "@mui/icons-material/Key";
-import { AuthClient, type Session } from "@/lib/auth-client";
-import SvgIcon from "@mui/material/SvgIcon";
+import { AuthClient } from "@/lib/auth-client";
+import { GoogleButton, PasskeyButton } from "./LoginButtons";
+
 
 export default function SignIn() {
+  // State variables
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+
+  // Error handling states
   const [errorMessage, setErrorMessage] = useState("");
+  const [EmailError, setEmailError] = useState(false);
+  const [PasswordError, setPasswordError] = useState(false)
+
+  // Form input states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+
+
+  // ------------------------
+  // Password visibility handlers
+  // ------------------------
+  //  
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleMouseDownPassword = (
     event: React.MouseEvent<HTMLButtonElement>
@@ -46,60 +61,111 @@ export default function SignIn() {
     event.preventDefault();
   };
 
+
+  // Determine last used login methods
+  const wasGoogle = AuthClient.isLastUsedLoginMethod("google")
+  const wasEmail = AuthClient.isLastUsedLoginMethod("email")
+  const wasPasskey = AuthClient.isLastUsedLoginMethod("passkey")
+  //const wasGitHub = AuthClient.isLastUsedLoginMethod("github")
+
+  // ------------------------
+  // Validation Helpers
+  // ------------------------
+
+  function isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function isValidPassword(password: string): boolean {
+    return password.length >= 8;
+  }
+
+  // ------------------------
+  // Email Sign-In Handler
+  // ------------------------
+
   const handleEmailSignIn = async (event: React.FormEvent) => {
     event.preventDefault();
-    // Ihre E-Mail-Anmelde-Logik hier
-    console.log("E-Mail Registrierung was clicked.");
+
+    // Fehler zurücksetzen
+    setErrorMessage("");
+    setEmailError(false);
+    setPasswordError(false);
     setLoading(true);
 
+    // Clientseitige Prüfung
     if (!email || !password) {
-      console.error("E-Mail or Password is missing.");
-      setErrorMessage("E-Mail or Password is missing.");
-      setLoading(false);
-
+      setErrorMessage("E-Mail oder Passwort fehlt.");
+      setEmailError(!email);
+      setPasswordError(!password);
       return;
     }
+
+    if (!isValidEmail(email)) {
+      setErrorMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+      setEmailError(true);
+      return;
+    }
+
+    if (!isValidPassword(password)) {
+      setErrorMessage("Das Passwort muss mindestens 8 Zeichen lang sein.");
+      setPasswordError(true);
+      return;
+    }
+
+
+    // Anmeldung via Better Auth
     try {
       const { data, error } = await AuthClient.signIn.email({
-        email: email, // required
-        password: password, // required
-        rememberMe: rememberMe as boolean,
-        callbackURL: "/",
+        email,
+        password,
+        rememberMe,
+        callbackURL: "/dashboard",
       });
-      console.log(`trying to sign in with ${email}...`);
+
       if (error) {
-        console.error("Error signing in with email:", error);
-        setErrorMessage("Error signing in with email: " + error.message);
-        setLoading(false);
-      } else {
-        console.log("Email sign-in successful!", data);
-        setLoading(false);
+        switch (error.code) {
+          case "invalid_email":
+            setEmailError(true);
+            setErrorMessage("Diese E-Mail-Adresse ist ungültig.");
+            break;
+
+          case "invalid_password":
+            setPasswordError(true);
+            setErrorMessage("Falsches Passwort.");
+            break;
+
+          case "user_not_found":
+            setEmailError(true);
+            setErrorMessage("Es wurde kein Benutzer mit dieser E-Mail gefunden.");
+            break;
+
+          case "too_many_requests":
+            setErrorMessage(
+              "Zu viele Anmeldeversuche. Bitte versuchen Sie es später erneut."
+            );
+            break;
+
+          default:
+            setErrorMessage("Unbekannter Fehler: " + error.message);
+        }
+
+        console.error("Better Auth Fehler:", error);
+        return;
       }
+
+      console.log("Anmeldung erfolgreich:", data);
     } catch (err) {
-      setErrorMessage("Unexpected error signing in with email." + err);
-      console.error("Unexpected error signing in with email:", err);
+      console.error("Unerwarteter Fehler:", err);
+      setErrorMessage("Ein unerwarteter Fehler ist aufgetreten: " + String(err));
+    } finally {
+      setLoading(false);
     }
   };
-  const handlePasskeySignIn = async (event: React.MouseEvent) => {
-    event.preventDefault();
-    console.log(`trying to sign in with passkey ...`);
-    setLoading(true);
 
-    await AuthClient.signIn.passkey({
-      autoFill: false,
-      fetchOptions: {
-        onSuccess() {
-          setLoading(false);
-          window.location.href = "/dashboard";
-        },
-        onError(context) {
-          setLoading(false);
-          console.error("Authentication failed:", context.error.message);
-          setErrorMessage("Authentication failed: " + context.error.message);
-        },
-      },
-    });
-  };
+  // -------------------------
+  // JSX Rendering
+  // -------------------------
 
   return (
     <>
@@ -112,7 +178,7 @@ export default function SignIn() {
           flexDirection: "column",
         }}
       >
-        <CardHeader title="Bitte melden Sie sich an" />
+        <CardHeader title="PLease sign in" />
         <CardContent
           sx={{
             width: "100%",
@@ -128,7 +194,7 @@ export default function SignIn() {
               sx={{
                 width: 300,
                 minHeight: 48,
-                mb: 2, // Abstand nach unten hinzufügen
+                mb: 2,
               }}
             >
               {errorMessage}
@@ -148,12 +214,14 @@ export default function SignIn() {
             <TextField
               fullWidth
               id="email"
-              label="Max@Musterman.de"
+              label="Max@Musterman.com"
               variant="standard"
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              error={EmailError}
+              autoComplete="on"
             />
             <FormControl fullWidth variant="standard">
               <InputLabel htmlFor="password">Passwort</InputLabel>
@@ -161,7 +229,9 @@ export default function SignIn() {
                 value={password}
                 id="password"
                 type={showPassword ? "text" : "password"}
-                onChange={(e) => setPassword(e.target.value)} // onChange-Handler hinzugefügt
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="on"
+                error={PasswordError}
                 endAdornment={
                   <InputAdornment position="end">
                     <IconButton
@@ -218,17 +288,26 @@ export default function SignIn() {
                 width: "100%",
               }}
             >
-              <Button
-                variant="contained"
-                color="primary"
-                type="submit"
-                sx={{
-                  flexGrow: 1,
-                  minHeight: "48px",
-                }}
+
+              <Badge
+                color="secondary"
+                badgeContent="Last used"
+                invisible={!wasEmail}
               >
-                Anmelden
-              </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  type="submit"
+                  loading={loading}
+                  sx={{
+                    flexGrow: 1,
+                    minHeight: "48px",
+                    width: "48%"
+                  }}
+                >
+                  Anmelden
+                </Button>
+              </Badge>
               <Button
                 variant="outlined"
                 color="secondary"
@@ -236,31 +315,17 @@ export default function SignIn() {
                 sx={{
                   flexGrow: 1,
                   minHeight: "48px",
+                  width: "48%"
                 }}
               >
                 Registrieren
               </Button>
             </Box>
           </Box>
-          {loading && (
-            <LinearProgress
-              style={{
-                width: 300,
-                marginTop: 3,
-                marginBottom: 3,
-              }}
-            />
-          )}
-          {!loading && (
-            <Divider
-              sx={{
-                my: 3,
-                width: 300,
-              }}
-            >
-              Oder melden Sie sich an mit
-            </Divider>
-          )}
+
+          {!loading && <Divider sx={{ my: 3, width: 300 }}>Oder melden Sie sich an mit</Divider>}
+          {loading && <LinearProgress sx={{ width: 300, my: 3 }} />}
+
           <Box
             sx={{
               gap: 2,
@@ -269,76 +334,27 @@ export default function SignIn() {
               flexWrap: "wrap",
             }}
           >
-            <Button
-              variant="outlined"
-              onClick={handlePasskeySignIn}
-              startIcon={<KeyIcon />}
-              sx={{
-                width: 300,
-                minHeight: 48,
-                font: "Roboto",
-              }}
-              loading={loading}
+            <Badge
+              color="secondary"
+              badgeContent="Last used"
+              invisible={!wasPasskey}
             >
-              Oder mit Passkey anmelden
-            </Button>
-            <Button
-              startIcon={
-                <SvgIcon>
-                  <svg
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 48 48"
-                  >
-                    <path
-                      fill="#EA4335"
-                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                    />
-                  </svg>
-                </SvgIcon>
-              }
-              variant="outlined"
-              color="primary"
-              sx={{
-                width: 300,
-                minHeight: 48,
-                justifyContent: "space-between",
-                backgroundColor: "#131314",
-                color: "#E3E3E3",
-              }}
-              disabled={loading}
-              loading={loading}
-              onClick={async () => {
-                await AuthClient.signIn.social(
-                  {
-                    provider: "google",
-                    callbackURL: "/dashboard",
-                  },
-                  {
-                    onRequest: () => {
-                      setLoading(true);
-                    },
-                    onResponse: () => {
-                      setLoading(false);
-                    },
-                  }
-                );
-              }}
+              <PasskeyButton width={300} />
+            </Badge>
+            <Badge
+              color="secondary"
+              badgeContent="Last used"
+              invisible={!wasGoogle}
             >
-              Mit Google anmelden
-            </Button>
+              <GoogleButton width={300} />
+            </Badge>
+            {/* <Badge
+              color="secondary"
+              badgeContent="Last used"
+              invisible={!wasGitHub}
+            >
+              <GitHubButton width={300}/>
+            </Badge> */}
           </Box>
         </CardContent>
       </Card>

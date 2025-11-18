@@ -18,6 +18,7 @@ model User {
   updatedAt        DateTime  @default(now()) @updatedAt
   stripeCustomerId String?
   Birthday         DateTime?
+  lastLoginMethod  String?
   sessions         Session[]
   accounts         Account[]
   passkeys         Passkey[]

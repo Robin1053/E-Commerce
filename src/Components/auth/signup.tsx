@@ -1,102 +1,162 @@
 "use client";
 
+import * as React from "react";
+import dayjs, { Dayjs } from "dayjs";
 import {
-  CardContent,
   Card,
+  CardContent,
   CardHeader,
-  IconButton,
+  Box,
   TextField,
   FormControl,
   InputLabel,
   Input,
   InputAdornment,
+  IconButton,
   Button,
   Divider,
-  Box,
   Alert,
-  SvgIcon,
+  LinearProgress,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs, { Dayjs } from "dayjs";
-import * as React from "react";
 import { AuthClient } from "@/lib/auth-client";
+import { GoogleButton } from "./LoginButtons";
 
 export default function SignUp() {
-  const [Birthday, setBirthday] = React.useState<Dayjs>(dayjs() || new Date());
-  const [Error, setError] = React.useState("");
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [email, setEmail] = React.useState("");
+  // ------------------------
+  // Form Input States
+  // ------------------------
+  const [birthday, setBirthday] = React.useState<Dayjs>(dayjs());
   const [name, setName] = React.useState("");
-  const [showRepeatPassword, setShowRepeatPassword] = React.useState(false);
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [repeatPassword, setRepeatPassword] = React.useState("");
-  const [pswrError, setPswError] = React.useState(false);
-  const [MailError, setMailError] = React.useState(false);
+
+  // ------------------------
+  // UI States
+  // ------------------------
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-  const handleClickShowRepeatPassword = () =>
-    setShowRepeatPassword((show) => !show);
-  const handleMouseDownRepeatPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault();
-  };
-  const handleMouseUpRepeatPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault();
-  };
-  const handleMouseDownPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault();
-  };
-  const handleMouseUpPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault();
-  };
+  // ------------------------
+  // Error Handling States
+  // ------------------------
+  const [errorMessage, setErrorMessage] = React.useState("");
+  const [passwordError, setPasswordError] = React.useState(false);
+  const [emailError, setEmailError] = React.useState(false);
+  const [nameError, setNameError] = React.useState(false);
 
+  // ------------------------
+  // Password visibility handlers
+  // ------------------------
+  const toggleShowPassword = () => setShowPassword((s) => !s);
+  const toggleShowRepeatPassword = () => setShowRepeatPassword((s) => !s);
+  const preventDefault = (event: React.MouseEvent<HTMLButtonElement>) =>
+    event.preventDefault();
+
+  // ------------------------
+  // Validation Helpers
+  // ------------------------
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const isValidPassword = (password: string) => password.length >= 8;
+
+  // ------------------------
+  // Email Sign-Up Handler
+  // ------------------------
   const handleEmailSignUp = async (event: React.FormEvent) => {
-    if (password !== repeatPassword || repeatPassword.length === 0) {
-      setError("Passwords do not match");
-      setPswError(true);
-    } else {
-      setError("");
-      event.preventDefault();
-      if (!email || !password || !name) {
-        console.error("E-Mail, Password or Name is missing.");
-        setError("E-Mail, Password or Name is missing.");
-        setPswError(true);
-        setMailError(true);
+    event.preventDefault();
+
+    // Reset Errors
+    setErrorMessage("");
+    setEmailError(false);
+    setPasswordError(false);
+    setNameError(false);
+    setLoading(true);
+
+    // ------------------------
+    // Client-side Validation
+    // ------------------------
+    if (!name || !email || !password || !repeatPassword) {
+      setErrorMessage("Name, E-Mail oder Passwort fehlt");
+      setNameError(!name);
+      setEmailError(!email);
+      setPasswordError(!password);
+      setLoading(false);
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setErrorMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein");
+      setEmailError(true);
+      setLoading(false);
+      return;
+    }
+
+    if (!isValidPassword(password)) {
+      setErrorMessage("Das Passwort muss mindestens 8 Zeichen lang sein");
+      setPasswordError(true);
+      setLoading(false);
+      return;
+    }
+
+    if (password !== repeatPassword) {
+      setErrorMessage("Passwörter stimmen nicht überein");
+      setPasswordError(true);
+      setLoading(false);
+      return;
+    }
+
+    // ------------------------
+    // Sign-Up via Better Auth
+    // ------------------------
+    try {
+      const { data, error } = await AuthClient.signUp.email({
+        name,
+        email,
+        password,
+        Birthday: birthday.toDate(),
+        callbackURL: "/",
+      });
+
+      if (error) {
+        switch (error.code) {
+          case "invalid_email":
+            setEmailError(true);
+            setErrorMessage("Die E-Mail-Adresse ist ungültig");
+            break;
+          case "weak_password":
+            setPasswordError(true);
+            setErrorMessage("Das Passwort ist zu schwach");
+            break;
+          case "too_many_requests":
+            setErrorMessage(
+              "Zu viele Registrierungsversuche. Bitte später erneut versuchen"
+            );
+            break;
+          default:
+            setErrorMessage("Unbekannter Fehler: " + error.message);
+        }
+        console.error("Better Auth Fehler:", error);
         return;
       }
 
-      try {
-        const { data, error } = await AuthClient.signUp.email({
-          name: name, // required
-          email: email, // required
-          password: password, // required
-          Birthday: Birthday.toDate(),
-          callbackURL: "/",
-        });
-        console.log(`Try with ${email} and Password ${password}...`);
-        if (error) {
-          console.error("Error with the registration:", error);
-          setError("Error with the registration: " + error.message);
-        } else {
-          console.log("E-Mail registration successful!", data);
-        }
-      } catch (err) {
-        setError("Unexpected error during email registration.");
-        console.error("Unexpected error during email registration:", err);
-      }
+      console.log("Registrierung erfolgreich:", data);
+    } catch (err) {
+      console.error("Unerwarteter Fehler:", err);
+      setErrorMessage("Ein unerwarteter Fehler ist aufgetreten: " + String(err));
+    } finally {
+      setLoading(false);
     }
   };
 
+  // ------------------------
+  // JSX Rendering
+  // ------------------------
   return (
     <>
       <Card
@@ -108,14 +168,10 @@ export default function SignUp() {
           flexDirection: "column",
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <CardHeader title="Please Sign Up" />
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <CardHeader title="Bitte registrieren Sie sich" />
         </Box>
+
         <CardContent
           sx={{
             width: "100%",
@@ -124,7 +180,6 @@ export default function SignUp() {
             alignItems: "center",
           }}
         >
-          {/* Formular-Container */}
           <Box
             component="form"
             onSubmit={handleEmailSignUp}
@@ -135,72 +190,57 @@ export default function SignUp() {
               gap: 2,
             }}
           >
-            {Error && (
+            {errorMessage && (
               <Alert
                 variant="outlined"
                 severity="error"
-                sx={{
-                  width: 300,
-                  minHeight: 48,
-                }}
+                sx={{ width: 300, minHeight: 48 }}
               >
-                {Error}
+                {errorMessage}
               </Alert>
             )}
+
+            {/* Name */}
             <TextField
               value={name}
               onChange={(e) => setName(e.target.value)}
-              style={{
-                width: 300,
-              }}
-              id="name"
-              label="Max Musterman"
+              label="Max Mustermann"
               variant="standard"
-              name="name"
               required
+              error={nameError}
+              sx={{ width: 300 }}
             />
+
+            {/* Email */}
             <TextField
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: 300,
-              }}
-              id="email"
-              label="Max@Musterman.de"
+              label="Max@Mustermann.de"
               variant="standard"
-              name="email"
               required
-              error={MailError}
-              helperText={MailError ? "Invalid E-Mail Address" : ""}
+              error={emailError}
+              helperText={emailError ? "Ungültige E-Mail-Adresse" : ""}
+              sx={{ width: 300 }}
             />
 
-            <FormControl
-              required
-              sx={{
-                width: 300,
-              }}
-              variant="standard"
-            >
-              <InputLabel htmlFor="standard-adornment-password">
-                Password
-              </InputLabel>
+            {/* Passwort */}
+            <FormControl variant="standard" required sx={{ width: 300 }}>
+              <InputLabel htmlFor="password">Passwort</InputLabel>
               <Input
-                error={pswrError}
+                id="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                name="password"
-                required
-                id="standard-adornment-password"
-                type={showPassword ? "text" : "password"}
+                error={passwordError}
                 endAdornment={
                   <InputAdornment position="end">
                     <IconButton
                       aria-label={
-                        showPassword ? "hide password" : "display password"
+                        showPassword ? "Passwort ausblenden" : "Passwort anzeigen"
                       }
-                      onClick={handleClickShowPassword}
-                      onMouseDown={handleMouseDownPassword}
-                      onMouseUp={handleMouseUpPassword}
+                      onClick={toggleShowPassword}
+                      onMouseDown={preventDefault}
+                      onMouseUp={preventDefault}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -208,35 +248,27 @@ export default function SignUp() {
                 }
               />
             </FormControl>
-            <FormControl
-              required
-              sx={{
-                width: 300,
-              }}
-              variant="standard"
-            >
-              <InputLabel htmlFor="standard-adornment-password">
-                Repeat Password
-              </InputLabel>
+
+            {/* Passwort wiederholen */}
+            <FormControl variant="standard" required sx={{ width: 300 }}>
+              <InputLabel htmlFor="repeat-password">Passwort wiederholen</InputLabel>
               <Input
-                error={pswrError}
+                id="repeat-password"
+                type={showRepeatPassword ? "text" : "password"}
                 value={repeatPassword}
                 onChange={(e) => setRepeatPassword(e.target.value)}
-                name="repeatPassword"
-                required
-                id="standard-adornment-password"
-                type={showRepeatPassword ? "text" : "password"}
+                error={passwordError}
                 endAdornment={
                   <InputAdornment position="end">
                     <IconButton
                       aria-label={
                         showRepeatPassword
-                          ? "hide password"
-                          : "display password"
+                          ? "Passwort ausblenden"
+                          : "Passwort anzeigen"
                       }
-                      onClick={handleClickShowRepeatPassword}
-                      onMouseDown={handleMouseDownRepeatPassword}
-                      onMouseUp={handleMouseUpRepeatPassword}
+                      onClick={toggleShowRepeatPassword}
+                      onMouseDown={preventDefault}
+                      onMouseUp={preventDefault}
                     >
                       {showRepeatPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -244,38 +276,30 @@ export default function SignUp() {
                 }
               />
             </FormControl>
+
+            {/* Geburtstag */}
             <DatePicker
               disableFuture
-              value={Birthday}
+              value={birthday}
               onChange={(newValue) => setBirthday(newValue || dayjs())}
-              label="Birthday"
-              sx={{
-                width: 300,
-                height: 48,
-              }}
+              label="Geburtsdatum"
+              sx={{ width: 300, height: 48 }}
             />
 
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 2,
-                width: 300,
-              }}
-            >
+            {/* Buttons */}
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 2, width: 300 }}>
               <Button
                 variant="contained"
                 color="primary"
                 type="submit"
                 sx={{
                   flexGrow: 1,
-                  minHeight: "48px",
-                  "@media (max-width: 600px)": {
-                    width: "100%",
-                  },
+                  minHeight: 48,
+                  "@media (max-width: 600px)": { width: "100%" },
                 }}
+                disabled={loading}
               >
-                Sign Up
+                Registrieren
               </Button>
               <Button
                 variant="outlined"
@@ -283,81 +307,22 @@ export default function SignUp() {
                 href="/auth/signin"
                 sx={{
                   flexGrow: 1,
-                  minHeight: "48px", // Mindesthöhe beibehalten
-                  "@media (max-width: 600px)": {
-                    width: "100%",
-                  },
+                  minHeight: 48,
+                  "@media (max-width: 600px)": { width: "100%" },
                 }}
+                disabled={loading}
               >
-                Sign In
+                Anmelden
               </Button>
             </Box>
           </Box>
 
-          <Divider
-            sx={{
-              my: 3,
-              width: 300,
-            }}
-          >
-            Or Sign Up with
-          </Divider>
-          <Button
-            startIcon={
-              <SvgIcon>
-                <svg
-                  version="1.1"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 48 48"
-                  style={{ display: "block" }}
-                >
-                  <path
-                    fill="#EA4335"
-                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                  />
-                </svg>
-              </SvgIcon>
-            }
-            variant="outlined"
-            color="primary"
-            sx={{
-              width: 300,
-              minHeight: 48,
-              font: "Roboto",
-            }}
-            disabled={loading}
-            loading={loading}
-            onClick={async () => {
-              await AuthClient.signIn.social(
-                {
-                  provider: "google",
-                  callbackURL: "/dashboard",
-                },
-                {
-                  onRequest: () => {
-                    setLoading(true);
-                  },
-                  onResponse: () => {
-                    setLoading(false);
-                  },
-                }
-              );
-            }}
-          >
-            Mit Google anmelden
-          </Button>
+          {/* Ladebalken & Divider */}
+          {loading && <LinearProgress sx={{ width: 300, my: 3 }} />}
+          {!loading && <Divider sx={{ my: 3, width: 300 }}>Oder registrieren mit</Divider>}
+
+          {/* Google Button */}
+          <GoogleButton width={300} />
         </CardContent>
       </Card>
     </>
