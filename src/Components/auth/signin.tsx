@@ -289,7 +289,7 @@ export default function SignIn() {
             >
 
               <Badge
-                color="secondary"
+                color="tertiary"
                 badgeContent="Last used"
                 invisible={!wasEmail}
               >
@@ -334,14 +334,14 @@ export default function SignIn() {
             }}
           >
             <Badge
-              color="secondary"
+              color="tertiary"
               badgeContent="Last used"
               invisible={!wasPasskey}
             >
               <PasskeyButton width={300} />
             </Badge>
             <Badge
-              color="secondary"
+              color="tertiary"
               badgeContent="Last used"
               invisible={!wasGoogle}
             >

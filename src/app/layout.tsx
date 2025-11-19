@@ -2,11 +2,11 @@
 import { Roboto, Sour_Gummy } from "next/font/google";
 import "./globals.css";
 import { NextAppProvider } from "@toolpad/core/nextjs";
-import LinearProgress from "@mui/material/LinearProgress";
+import { Badge, IconButton, LinearProgress, } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import * as React from "react";
 import { NAVIGATION, BRANDING } from "@/lib/AppProvidor";
-import { DashboardLayout } from "@toolpad/core/DashboardLayout";
+import { DashboardLayout, ThemeSwitcher } from "@toolpad/core/DashboardLayout";
 import { PageContainer } from "@toolpad/core/PageContainer";
 import { AuthClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import theme from "@/theme/theme";
 import { ThemeProvider } from "@mui/material";
+import 'material-symbols';
+import { Account } from '@toolpad/core/Account';
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -45,6 +47,21 @@ export default function DashboardPagesLayout(props: {
     };
   }, [router]);
 
+
+  function ToolbarActions() {
+    return (
+      <>
+        <Badge>
+          <IconButton color="tertiary" href="/cart">
+            <span className="material-symbols-outlined">shopping_cart</span>
+          </IconButton>
+        </Badge>
+        <ThemeSwitcher />
+        <Account />
+      </>
+    );
+  }
+
   return (
     <html lang="de">
       <body className={`${roboto.variable} ${sourGummy.variable} antialiased`}>
@@ -56,7 +73,13 @@ export default function DashboardPagesLayout(props: {
               authentication={authentication}
               session={session}
             >
-              <DashboardLayout branding={BRANDING}>
+              <DashboardLayout
+                branding={BRANDING}
+                slots={
+                  {
+                    toolbarActions: ToolbarActions
+                  }
+                }>
                 <ThemeProvider theme={theme}>
                   <PageContainer>
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
