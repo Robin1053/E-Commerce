@@ -16,6 +16,8 @@ import theme from "@/theme/theme";
 import { ThemeProvider } from "@mui/material";
 import 'material-symbols';
 import { Account } from '@toolpad/core/Account';
+import { CartProvider, useCart } from "@/contexts/CartContext";
+
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -49,9 +51,14 @@ export default function DashboardPagesLayout(props: {
 
 
   function ToolbarActions() {
+    const { cartCount } = useCart();
+    
     return (
       <>
-        <Badge>
+        <Badge
+          badgeContent={cartCount}
+          color="primary"
+        >
           <IconButton color="tertiary" href="/cart">
             <span className="material-symbols-outlined">shopping_cart</span>
           </IconButton>
@@ -61,34 +68,35 @@ export default function DashboardPagesLayout(props: {
       </>
     );
   }
-
   return (
     <html lang="de">
       <body className={`${roboto.variable} ${sourGummy.variable} antialiased`}>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <React.Suspense fallback={<LinearProgress />}>
-            <NextAppProvider
-              navigation={NAVIGATION}
-              branding={BRANDING}
-              authentication={authentication}
-              session={session}
-            >
-              <DashboardLayout
+            <CartProvider>
+              <NextAppProvider
+                navigation={NAVIGATION}
                 branding={BRANDING}
-                slots={
-                  {
-                    toolbarActions: ToolbarActions
-                  }
-                }>
-                <ThemeProvider theme={theme}>
-                  <PageContainer>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      {props.children}
-                    </LocalizationProvider>
-                  </PageContainer>
-                </ThemeProvider>
-              </DashboardLayout>{" "}
-            </NextAppProvider>
+                authentication={authentication}
+                session={session}
+              >
+                <DashboardLayout
+                  branding={BRANDING}
+                  slots={
+                    {
+                      toolbarActions: ToolbarActions
+                    }
+                  }>
+                  <ThemeProvider theme={theme}>
+                    <PageContainer>
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        {props.children}
+                      </LocalizationProvider>
+                    </PageContainer>
+                  </ThemeProvider>
+                </DashboardLayout>{" "}
+              </NextAppProvider>
+            </CartProvider>
           </React.Suspense>
         </AppRouterCacheProvider>
       </body>

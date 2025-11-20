@@ -10,14 +10,27 @@ import {
   Chip,
   IconButton,
   TextField,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { useState } from "react";
+import * as React from "react";
+import { useCart } from "@/contexts/CartContext";
+
 
 export default function ProductCard(product: Product) {
+
   const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error",
+  });
+  const { refreshCartCount } = useCart();
 
   const handleIncrease = () => {
     setQuantity((prev) => prev + 1);
@@ -32,7 +45,56 @@ export default function ProductCard(product: Product) {
     if (!isNaN(value) && value > 0) {
       setQuantity(value);
     }
-  };  return (
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  async function AddtoShoppingCard() {
+    setLoading(true);
+    
+    try {
+      const response = await fetch("/api/cart/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: quantity,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSnackbar({
+          open: true,
+          message: `${quantity}x ${product.name} zum Warenkorb hinzugefügt`,
+          severity: "success",
+        });
+        setQuantity(1); // Zurücksetzen auf 1
+        await refreshCartCount(); // Aktualisiere die Badge-Anzeige
+      } else {
+        setSnackbar({
+          open: true,
+          message: data.error || "Fehler beim Hinzufügen",
+          severity: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Fehler:", error);
+      setSnackbar({
+        open: true,
+        message: "Netzwerkfehler. Bitte versuchen Sie es erneut.",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
     <Card
       sx={{
         height: "100vh",
@@ -50,7 +112,7 @@ export default function ProductCard(product: Product) {
       <Box
         sx={{
           position: "relative",
-          paddingTop: "75%", 
+          paddingTop: "75%",
           overflow: "hidden",
           bgcolor: "grey.100",
         }}
@@ -213,6 +275,8 @@ export default function ProductCard(product: Product) {
             color="primary"
             fullWidth
             startIcon={<AddShoppingCartIcon />}
+            onClick={AddtoShoppingCard}
+            loading={loading}
             sx={{
               borderRadius: 2,
               textTransform: "none",
@@ -220,10 +284,27 @@ export default function ProductCard(product: Product) {
               py: 1,
             }}
           >
-            Hinzufügen
+            {loading ? "Wird hinzugefügt..." : "Hinzufügen"}
           </Button>
         </Box>
       </CardContent>
+
+      {/* Snackbar für Feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 }
