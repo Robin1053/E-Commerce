@@ -18,7 +18,6 @@ import 'material-symbols';
 import { Account } from '@toolpad/core/Account';
 import { CartProvider, useCart } from "@/contexts/CartContext";
 
-
 const roboto = Roboto({
   variable: "--font-roboto",
   subsets: ["latin"],
@@ -52,7 +51,7 @@ export default function DashboardPagesLayout(props: {
 
   function ToolbarActions() {
     const { cartCount } = useCart();
-    
+
     return (
       <>
         <Badge
@@ -100,6 +99,6 @@ export default function DashboardPagesLayout(props: {
           </React.Suspense>
         </AppRouterCacheProvider>
       </body>
-    </html>
+    </html >
   );
 }
