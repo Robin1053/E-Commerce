@@ -140,6 +140,37 @@ function CartComponent({ cart }: { session: Session | null, cart: CartWithItems 
         );
     }
 
+    const Checkout = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch("/api/stripe/checkout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                window.location.href = data.url;
+            } else {
+                setSnackbar({
+                    open: true,
+                    message: data.error || "Fehler beim Checkout",
+                    severity: "error",
+                });
+            }
+        } catch (error) {
+            console.error("Fehler beim Checkout:", error);
+            setSnackbar({
+                open: true,
+                message: "Netzwerkfehler",
+                severity: "error",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -257,6 +288,7 @@ function CartComponent({ cart }: { session: Session | null, cart: CartWithItems 
                 disabled={loading}
                 fullWidth
                 size="large"
+                onClick={Checkout}
             // TODO: Checkout mit stripe 
             >
                 {loading ? "Lädt..." : "Zur Kasse"}
